@@ -1,0 +1,13 @@
+# RStudio files
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.Rbuildignore
+
+# Build artifacts
+/*.tar.gz
+/*.Rcheck/
+
+# OS generated files
+.DS_Store
