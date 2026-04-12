@@ -1,5 +1,5 @@
 Package: spiv
-Title: System Projections with Instrumental Variables (One Line, Title Case)
+Title: System Projections with Instrumental Variables
 Version: 0.1
 Authors@R: 
     person(given = "Gauthier", family = "Serres", email = "gauthierserres@outlook.fr", role = c("aut", "cre"))
