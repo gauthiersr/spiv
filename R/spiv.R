@@ -192,7 +192,8 @@ spiv <- function(y, Y, X, Z, H, alpha = 0.05, wiv = c("AR", "KLM"), xi = 0.10, g
       results <- future_lapply(b_list, function(b_current) {
         stat <- compute_AR_stat(b_current, y_res, Y_res, Pz, Mz, H, T_ess, d_AR)
         if (stat < crit_AR) return(b_current) else return(NULL)
-      }, future.seed = TRUE)
+      }, future.seed = TRUE,
+      future.scheduling = 1.0)
       # Filter the NULL
       confidence_set <- Filter(Negate(is.null), results)
       # data frame
@@ -218,7 +219,8 @@ spiv <- function(y, Y, X, Z, H, alpha = 0.05, wiv = c("AR", "KLM"), xi = 0.10, g
       results <- future_lapply(b_list, function(b_current) {
         stat <- compute_KLM_stat(b_current, y_res, Y_res, v_res, Mz, Pz, R, H, T_ess, d_K)
         if (stat < crit_KLM) return(b_current) else return(NULL)
-      }, future.seed = TRUE)
+      }, future.seed = TRUE,
+      future.scheduling = 1.0)
       # Filter the NULL
       confidence_set <- Filter(Negate(is.null), results)
       # data frame

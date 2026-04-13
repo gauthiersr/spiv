@@ -1,6 +1,6 @@
 Package: spiv
 Title: System Projections with Instrumental Variables
-Version: 0.2
+Version: 0.2.1
 Authors@R: 
     person(given = "Gauthier", family = "Serres", email = "gauthierserres@outlook.fr", role = c("aut", "cre"))
 Description: Implementation of D. J. Lewis and K. Mertens (2024) Dynamic Identification Using System Projections on Instrumental Variables. Unofficial implementation of the cited methodology; contact Gauthier Serres to report a problem. 
