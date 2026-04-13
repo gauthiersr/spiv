@@ -1,15 +1,21 @@
 Package: spiv
 Title: System Projections with Instrumental Variables
-Version: 0.1
+Version: 0.2
 Authors@R: 
     person(given = "Gauthier", family = "Serres", email = "gauthierserres@outlook.fr", role = c("aut", "cre"))
 Description: Implementation of D. J. Lewis and K. Mertens (2024) Dynamic Identification Using System Projections on Instrumental Variables. Unofficial implementation of the cited methodology; contact Gauthier Serres to report a problem. 
 License: MIT + file LICENSE
 Encoding: UTF-8
+SystemRequirements: C++14
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports: 
+    future,
     future.apply,
     ggplot2,
     lmtest,
-    sandwich
+    sandwich,
+    Rcpp
+LinkingTo:
+    Rcpp,
+    RcppArmadillo
