@@ -88,11 +88,11 @@ spiv <- function(y, Y, X, Z, H, alpha = 0.05, wiv = c("AR", "KLM"), xi = 0.10, g
     yH <- t(y_hlist)
 
     # Truncate X and Z to match the new T_ess dimension
-    X <- X[, 1:T_ess]
+    X <- X[, 1:T_ess, drop = FALSE]
     Z <- Z[, 1:T_ess]
 
   # Direct forecasting
-    Px = t(X) %*% qr.solve(X %*% t(X)) %*% X
+    Px = t(X) %*% solve(tcrossprod(X), X)
     Mx = diag(T_ess) - Px
 
     # Equation 38 :
@@ -102,7 +102,7 @@ spiv <- function(y, Y, X, Z, H, alpha = 0.05, wiv = c("AR", "KLM"), xi = 0.10, g
 
   # SP-IV estimator
     R <- diag(K) %x% as.vector(diag(H))
-    Pz <- t(Z_res) %*% solve(Z_res %*% t(Z_res)) %*% Z_res
+    Pz <- t(Z_res) %*% solve(tcrossprod(Z_res), Z_res)
     Mz <- diag(T_ess) - Pz
 
     # Eq 9 :
@@ -174,63 +174,39 @@ spiv <- function(y, Y, X, Z, H, alpha = 0.05, wiv = c("AR", "KLM"), xi = 0.10, g
       Lower_95 = as.vector(strong_lower),
       Upper_95 = as.vector(strong_upper)
     )
+
+    ci_level <- format(100 * (1 - alpha), trim = TRUE, scientific = FALSE)
+    names(strong_ci)[3:4] <- paste0(c("Lower_", "Upper_"), ci_level) # Update column names to reflect confidence level
+
     rownames(strong_ci) <- paste0("Param_", 1:K)
 
   # Robust tests
-    if (wiv[1] == "AR") {
-      # AR
-      d_AR = Nz + Nx
-      crit_AR <- qchisq(1-alpha, df = H * Nz)
+    d_robust <- Nz + Nx
+    crit_robust <- qchisq(1-alpha, df = if (wiv == "AR") H * Nz else K)
+    grid_values <- seq(from = grid["lower"], to = grid["upper"], length.out = grid["length"])
+    n_grid <- length(grid_values)^K
+    if (length(grid_values) == 0 || !is.finite(n_grid) || n_grid > 2^53) {
+      stop("ERROR: Grid must contain at least one point and at most 2^53 combinations.")
+    }
 
-      # Dynamic grid for K variables : change the from, to and length to fct arguments later
-      grid_list <- replicate(K, seq(from = grid["lower"], to = grid["upper"], length.out = grid["length"]), simplify = FALSE)
-      # Generate the combinations dynamically using do.call
-      b_grid_df <- do.call(expand.grid, grid_list)
-      # Data frame to list of transposed Kx1 matrices
-      b_list <- lapply(1:nrow(b_grid_df), function(i) t(as.matrix(b_grid_df[i, ])))
-      # Grid search
-      results <- future_lapply(b_list, function(b_current) {
-        stat <- compute_AR_stat(b_current, y_res, Y_res, Pz, Mz, H, T_ess, d_AR)
-        if (stat < crit_AR) return(b_current) else return(NULL)
-      }, future.seed = TRUE,
-      future.scheduling = 1.0)
-      # Filter the NULL
-      confidence_set <- Filter(Negate(is.null), results)
-      # data frame
-      if (length(confidence_set) > 0) {
-        valid_b_df <- do.call(rbind, lapply(confidence_set, t))
-        colnames(valid_b_df) <- paste0("Param_", 1:K)
-      } else {
-        valid_b_df <- data.frame()
-      }
-    } else if (wiv[1] == "KLM") {
-      # KLM
-      d_K = Nz + Nx
-      crit_KLM <- qchisq(1-alpha, df = K)
-
-      # Dynamic grid for K variables : change the from, to and length to fct arguments later
-      grid_list <- replicate(K, seq(from = grid["lower"], to = grid["upper"], length.out = grid["length"]), simplify = FALSE)
-      # Generate the combinations dynamically using do.call
-      b_grid_df <- do.call(expand.grid, grid_list)
-      # Data frame to list of transposed Kx1 matrices
-      b_list <- lapply(1:nrow(b_grid_df), function(i) t(as.matrix(b_grid_df[i, ])))
-
-      # Grid search with RcppArmadillo
-      results <- future_lapply(b_list, function(b_current) {
-        stat <- compute_KLM_stat(b_current, y_res, Y_res, v_res, Mz, Pz, R, H, T_ess, d_K)
-        if (stat < crit_KLM) return(b_current) else return(NULL)
-      }, future.seed = TRUE,
-      future.scheduling = 1.0)
-      # Filter the NULL
-      confidence_set <- Filter(Negate(is.null), results)
-      # data frame
-      if (length(confidence_set) > 0) {
-        valid_b_df <- do.call(rbind, lapply(confidence_set, t))
-        colnames(valid_b_df) <- paste0("Param_", 1:K)
-      } else {
-        valid_b_df <- data.frame()
-      }
-
+    grid_batch <- function(start_index, end_index) {
+      compute_robust_grid(grid_values, start_index, end_index, y_res, Y_res, v_res,
+                          Pz, Mz, R, H, T_ess, d_robust, crit_robust, wiv == "KLM")
+    }
+    if (cores == 1) {
+      valid_b <- grid_batch(0, n_grid)
+    } else {
+      boundaries <- floor(seq(0, n_grid, length.out = min(cores, n_grid) + 1))
+      batches <- future_lapply(seq_len(length(boundaries) - 1), function(chunk) {
+        grid_batch(boundaries[chunk], boundaries[chunk + 1])
+      }, future.seed = FALSE)
+      valid_b <- do.call(rbind, batches)
+    }
+    if (nrow(valid_b) > 0) {
+      valid_b_df <- as.data.frame(valid_b)
+      colnames(valid_b_df) <- paste0("Param_", 1:K)
+    } else {
+      valid_b_df <- data.frame()
     }
     # Empty grid check
     if (nrow(valid_b_df) > 0) {
@@ -246,13 +222,8 @@ spiv <- function(y, Y, X, Z, H, alpha = 0.05, wiv = c("AR", "KLM"), xi = 0.10, g
         confidence_set = valid_b_df
       )
 
-      if (wiv == "AR") {
-        robust_inference$degrees_freedom = d_AR
-        robust_inference$critical_value = crit_AR
-      } else if (wiv == "KLM") {
-        robust_inference$degrees_freedom = d_K
-        robust_inference$critical_value = crit_KLM
-      }
+      robust_inference$degrees_freedom = d_robust
+      robust_inference$critical_value = crit_robust
     } else {
       robust_inference = list(
         warning = "Empty robust confidence set. Reexamine model specification or choice of instruments.",

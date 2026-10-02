@@ -49,10 +49,35 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// compute_robust_grid
+arma::mat compute_robust_grid(const arma::vec& grid_values, double start_index, double end_index, const arma::mat& y_res, const arma::mat& Y_res, const arma::mat& v_res, const arma::mat& Pz, const arma::mat& Mz, const arma::mat& R, int H, int T_ess, int d, double critical_value, bool is_klm);
+RcppExport SEXP _spiv_compute_robust_grid(SEXP grid_valuesSEXP, SEXP start_indexSEXP, SEXP end_indexSEXP, SEXP y_resSEXP, SEXP Y_resSEXP, SEXP v_resSEXP, SEXP PzSEXP, SEXP MzSEXP, SEXP RSEXP, SEXP HSEXP, SEXP T_essSEXP, SEXP dSEXP, SEXP critical_valueSEXP, SEXP is_klmSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type grid_values(grid_valuesSEXP);
+    Rcpp::traits::input_parameter< double >::type start_index(start_indexSEXP);
+    Rcpp::traits::input_parameter< double >::type end_index(end_indexSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type y_res(y_resSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Y_res(Y_resSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type v_res(v_resSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Pz(PzSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Mz(MzSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type R(RSEXP);
+    Rcpp::traits::input_parameter< int >::type H(HSEXP);
+    Rcpp::traits::input_parameter< int >::type T_ess(T_essSEXP);
+    Rcpp::traits::input_parameter< int >::type d(dSEXP);
+    Rcpp::traits::input_parameter< double >::type critical_value(critical_valueSEXP);
+    Rcpp::traits::input_parameter< bool >::type is_klm(is_klmSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_robust_grid(grid_values, start_index, end_index, y_res, Y_res, v_res, Pz, Mz, R, H, T_ess, d, critical_value, is_klm));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_spiv_compute_AR_stat", (DL_FUNC) &_spiv_compute_AR_stat, 8},
     {"_spiv_compute_KLM_stat", (DL_FUNC) &_spiv_compute_KLM_stat, 10},
+    {"_spiv_compute_robust_grid", (DL_FUNC) &_spiv_compute_robust_grid, 14},
     {NULL, NULL, 0}
 };
 

@@ -1,4 +1,6 @@
 #include <RcppArmadillo.h>
+#include <cstdint>
+#include <vector>
 
 using namespace arma;
 
@@ -71,4 +73,47 @@ double compute_KLM_stat(const arma::vec& b,
   // 7. KLM statistic
   double stat = (T_ess - d_K) * as_scalar(S.t() * solve(V, S));
   return stat;
+}
+
+// [[Rcpp::export]]
+arma::mat compute_robust_grid(const arma::vec& grid_values,
+                              double start_index,
+                              double end_index,
+                              const arma::mat& y_res,
+                              const arma::mat& Y_res,
+                              const arma::mat& v_res,
+                              const arma::mat& Pz,
+                              const arma::mat& Mz,
+                              const arma::mat& R,
+                              int H,
+                              int T_ess,
+                              int d,
+                              double critical_value,
+                              bool is_klm) {
+  const uword K = Y_res.n_rows / H;
+  std::vector<vec> accepted;
+  vec b(K);
+
+  // Enumerate the requested grid slice and retain parameter vectors below the cutoff.
+  for (std::uint64_t index = static_cast<std::uint64_t>(start_index);
+       index < static_cast<std::uint64_t>(end_index); ++index) {
+    std::uint64_t offset = index;
+    for (uword parameter = 0; parameter < K; ++parameter) {
+      b[parameter] = grid_values[offset % grid_values.n_elem];
+      offset /= grid_values.n_elem;
+    }
+
+    // The ?/: operator chooses KLM when is_klm is true, and AR otherwise.
+    const double stat = is_klm
+      ? compute_KLM_stat(b, y_res, Y_res, v_res, Mz, Pz, R, H, T_ess, d)
+      : compute_AR_stat(b, y_res, Y_res, Pz, Mz, H, T_ess, d);
+    if (stat < critical_value) accepted.push_back(b);
+    if ((index & 1023) == 0) Rcpp::checkUserInterrupt();
+  }
+
+  mat result(accepted.size(), K);
+  for (std::size_t row = 0; row < accepted.size(); ++row) {
+    result.row(row) = accepted[row].t();
+  }
+  return result;
 }

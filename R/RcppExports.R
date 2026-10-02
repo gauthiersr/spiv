@@ -9,3 +9,7 @@ compute_KLM_stat <- function(b, y_res, Y_res, v_res, Mz, Pz, R, H, T_ess, d_K) {
     .Call(`_spiv_compute_KLM_stat`, b, y_res, Y_res, v_res, Mz, Pz, R, H, T_ess, d_K)
 }
 
+compute_robust_grid <- function(grid_values, start_index, end_index, y_res, Y_res, v_res, Pz, Mz, R, H, T_ess, d, critical_value, is_klm) {
+    .Call(`_spiv_compute_robust_grid`, grid_values, start_index, end_index, y_res, Y_res, v_res, Pz, Mz, R, H, T_ess, d, critical_value, is_klm)
+}
+
